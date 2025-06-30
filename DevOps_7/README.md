@@ -41,6 +41,9 @@
 **Демонстрация работы:**
 -  ![Скриншот мониторинга диска](disk-monitoring-and-test.png)
 
+**Проверка скрипта и логов после сетапа crontab:**
+- ![alt text](check-logs-after-crontab.png)
+
 ---
 
 ## ✅ Task 3: Monit Configuration for Nginx
