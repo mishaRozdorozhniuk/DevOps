@@ -1,9 +1,11 @@
+require 'dotenv'
+Dotenv.load('.env')
+
 Vagrant.configure("2") do |config|
   config.vm.define "APP_VM" do |app_vm|
-    app_vm.vm.box = "ubuntu/bionic64"  # Ubuntu 18.04 official box
+    app_vm.vm.box = "ubuntu/bionic64"
     app_vm.vm.hostname = "app-vm"
 
-    # Optional: Port forwarding
     app_vm.vm.network "forwarded_port", guest: 8080, host: 8080
 
     app_vm.vm.provision "shell", path: "connect-db.sh"
@@ -13,7 +15,9 @@ Vagrant.configure("2") do |config|
     db_vm.vm.box = "ubuntu/bionic64"
     db_vm.vm.hostname = "db-vm"
 
-    # Set environment variables (not persistent across reboots unless exported properly)
+    db_vm.vm.network "private_network", ip: "192.168.56.10"
+
+    # Передаём переменные окружения в машину
     db_vm.vm.provision "shell", inline: <<-SHELL
       echo "export DB_USER='#{ENV['DB_USER']}'" >> /etc/profile.d/db_env.sh
       echo "export DB_PASS='#{ENV['DB_PASS']}'" >> /etc/profile.d/db_env.sh
@@ -22,7 +26,5 @@ Vagrant.configure("2") do |config|
     SHELL
 
     db_vm.vm.provision "shell", path: "start.sh"
-
-    db_vm.vm.network "private_network", ip: "192.168.56.10"
   end
 end
