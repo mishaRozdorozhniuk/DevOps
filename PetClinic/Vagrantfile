@@ -1,0 +1,33 @@
+Vagrant.configure("2") do |config|
+  config.vm.define "APP_VM" do |app_vm|
+    # Docker provider configuration
+    app_vm.vm.provider "docker" do |docker|
+      docker.image = "ubuntu:18.04"
+      docker.ports = ["8080:8080"]
+      docker.name = "app-vm"
+      docker.cmd = ["sleep", "infinity"]
+    end
+
+    app_vm.vm.provision "shell", path: "connect-db.sh"
+  end
+
+  config.vm.define "DB_VM" do |db_vm|
+    db_vm.vm.provider "docker" do |docker|
+      docker.image = "ubuntu:18.04"
+      docker.name = "db-vm"
+      docker.cmd = ["sleep", "infinity"]
+    end
+
+    # Проброс переменных окружения как export-переменные в контейнер
+    db_vm.vm.provision "shell", inline: <<-SHELL
+      echo "export DB_USER='#{ENV['DB_USER']}'" >> /etc/environment
+      echo "export DB_PASS='#{ENV['DB_PASS']}'" >> /etc/environment
+      echo "export DB_NAME='#{ENV['DB_NAME']}'" >> /etc/environment
+    SHELL
+
+    # Запуск скрипта для установки MySQL и прочего
+    db_vm.vm.provision "shell", path: "start.sh"
+
+    db_vm.vm.network "private_network", ip: "192.168.56.10"
+  end
+end
