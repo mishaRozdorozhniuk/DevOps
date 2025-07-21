@@ -11,4 +11,19 @@ echo "Installing MySQL client..."
 apt-get install -y default-mysql-client
 
 echo "Trying to connect to the database at $DB_HOST..."
-mysql -u "$DB_USER" -p"$DB_PASS" -h "$DB_HOST" -e "SHOW DATABASES;"
+
+MAX_RETRIES=10
+RETRY_DELAY=5
+
+for ((i=1; i<=MAX_RETRIES; i++)); do
+  if mysql -u "$DB_USER" -p"$DB_PASS" -h "$DB_HOST" -e "SHOW DATABASES;"; then
+    echo "✅ Connection successful!"
+    exit 0
+  else
+    echo "❌ Connection failed. Retry $i/$MAX_RETRIES..."
+    sleep $RETRY_DELAY
+  fi
+done
+
+echo "🚫 Failed to connect to the database after $MAX_RETRIES attempts."
+exit 1

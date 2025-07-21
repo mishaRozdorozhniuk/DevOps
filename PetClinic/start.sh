@@ -6,6 +6,8 @@ DB_USER=${DB_USER:-test_user}
 DB_PASS=${DB_PASS:-test_pass}
 DB_NAME=${DB_NAME:-test_db}
 
+APP_USER="app_user"
+
 function install_my_sql() {
     echo "Updating package list..."
     apt-get update
@@ -45,3 +47,42 @@ MYSQL_SCRIPT
 }
 
 install_my_sql
+
+function install_java_sdk() {
+    APP_USER="app_user"
+    HOME_USER="/home/$APP_USER"
+    PROJECT_DIR="/home/$APP_USER/devops_soft/forStep1/PetClinic"
+    PROJECT_JAR="$PROJECT_DIR/target"
+
+    echo "Installing java sdk..." 
+    apt-get install -y openjdk-11-jdk
+
+    if ! id "$APP_USER" &>/dev/null; then
+        useradd -m -s /bin/bash "$APP_USER"
+    fi
+
+    if [ ! -d "/home/$APP_USER/devops_soft" ]; then
+        sudo -u $APP_USER git clone https://gitlab.com/dan-it/groups/devops_soft.git /home/$APP_USER/devops_soft
+    fi
+
+    sudo -u $APP_USER bash -c "
+      cd $PROJECT_DIR &&
+      chmod +x mvnw &&
+      ./mvnw clean package
+    "
+
+    if [ $? -eq 0 ]; then
+        JAR_FILE=$(find "$PROJECT_JAR" -type f -name "*.jar" | head -n 1)
+
+        if [ -n "$JAR_FILE" ]; then
+            cp "$JAR_FILE" "$HOME_USER"
+
+            chown "$APP_USER:$APP_USER" "$HOME_USER/$(basename "$JAR_FILE")"       
+        fi
+    else
+        echo "Bye bye..."
+        exit 1
+    fi
+}
+
+install_java_sdk
