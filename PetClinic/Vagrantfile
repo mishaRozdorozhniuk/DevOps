@@ -1,30 +1,41 @@
-require 'dotenv'
-Dotenv.load('.env')
-
 Vagrant.configure("2") do |config|
-  config.vm.define "APP_VM" do |app_vm|
-    app_vm.vm.box = "ubuntu/bionic64"
-    app_vm.vm.hostname = "app-vm"
-
-    app_vm.vm.network "forwarded_port", guest: 8080, host: 8080
-
-    app_vm.vm.provision "shell", path: "connect-db.sh"
-  end
+  env = Hash[File.readlines(".env").map { |l| l.strip.split("=", 2) }]
 
   config.vm.define "DB_VM" do |db_vm|
     db_vm.vm.box = "ubuntu/bionic64"
     db_vm.vm.hostname = "db-vm"
-
     db_vm.vm.network "private_network", ip: "192.168.56.10"
 
-    # Передаём переменные окружения в машину
     db_vm.vm.provision "shell", inline: <<-SHELL
-      echo "export DB_USER='#{ENV['DB_USER']}'" >> /etc/profile.d/db_env.sh
-      echo "export DB_PASS='#{ENV['DB_PASS']}'" >> /etc/profile.d/db_env.sh
-      echo "export DB_NAME='#{ENV['DB_NAME']}'" >> /etc/profile.d/db_env.sh
+      echo "export DB_USER=#{env['DB_USER']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_PASS=#{env['DB_PASS']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_NAME=#{env['DB_NAME']}" >> /etc/profile.d/db_env.sh
       chmod +x /etc/profile.d/db_env.sh
     SHELL
 
     db_vm.vm.provision "shell", path: "start.sh"
+
+    # 🟡 Добавляем trigger
+    db_vm.trigger.after :provision do |trigger|
+      trigger.name = "Wait for DB to fully start before APP_VM"
+      trigger.run = { inline: "echo '⏳ Waiting for DB to initialize...'; sleep 20" }
+    end
+  end
+
+  config.vm.define "APP_VM" do |app_vm|
+    app_vm.vm.box = "ubuntu/bionic64"
+    app_vm.vm.hostname = "app-vm"
+    app_vm.vm.network "forwarded_port", guest: 8080, host: 8080
+
+    app_vm.vm.provision "shell", inline: <<-SHELL
+      echo "export DB_HOST=#{env['DB_HOST']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_PORT=#{env['DB_PORT']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_NAME=#{env['DB_NAME']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_USER=#{env['DB_USER']}" >> /etc/profile.d/db_env.sh
+      echo "export DB_PASS=#{env['DB_PASS']}" >> /etc/profile.d/db_env.sh
+      chmod +x /etc/profile.d/db_env.sh
+    SHELL
+
+    app_vm.vm.provision "shell", path: "connect-db.sh"
   end
 end

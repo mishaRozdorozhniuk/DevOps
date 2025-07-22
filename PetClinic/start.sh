@@ -1,10 +1,6 @@
 #!/bin/bash
 
-source /etc/environment
-
-DB_USER=${DB_USER:-test_user}
-DB_PASS=${DB_PASS:-test_pass}
-DB_NAME=${DB_NAME:-test_db}
+source /etc/profile.d/db_env.sh
 
 APP_USER="app_user"
 
@@ -18,11 +14,7 @@ function install_my_sql() {
     echo "Starting MySQL service..."
     service mysql start
 
-    # Настройка bind-address для приватной сети
     echo "Configuring MySQL to accept connections from private network..."
-    sed -i "s/^bind-address.*/bind-address = 192.168.56.10/" /etc/mysql/mysql.conf.d/mysqld.cnf
-
-    # Также разрешаем подключения с localhost для безопасности
     sed -i "s/^bind-address.*/bind-address = 0.0.0.0/" /etc/mysql/mysql.conf.d/mysqld.cnf
 
     echo "Restarting MySQL service..."
@@ -39,36 +31,35 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
 
-    echo "MySQL installation and configuration completed!"
-    echo "Database: ${DB_NAME}"
-    echo "User: ${DB_USER}"
-    echo "Password: ${DB_PASS}"
-    echo "Network: 192.168.56.0/24"
+    echo "✅ MySQL configured with DB: ${DB_NAME}, User: ${DB_USER}"
 }
 
-install_my_sql
-
 function install_java_sdk() {
-    APP_USER="app_user"
-    HOME_USER="/home/$APP_USER"
-    PROJECT_DIR="/home/$APP_USER/devops_soft/forStep1/PetClinic"
-    PROJECT_JAR="$PROJECT_DIR/target"
-
-    echo "Installing java sdk..." 
-    apt-get install -y openjdk-11-jdk
+    echo "Installing Java SDK..."
+    apt-get install -y openjdk-11-jdk git
 
     if ! id "$APP_USER" &>/dev/null; then
+        echo "Creating user $APP_USER"
         useradd -m -s /bin/bash "$APP_USER"
     fi
 
-    if [ ! -d "/home/$APP_USER/devops_soft" ]; then
-        sudo -u $APP_USER git clone https://gitlab.com/dan-it/groups/devops_soft.git /home/$APP_USER/devops_soft
+    HOME_USER="/home/$APP_USER"
+    PROJECT_DIR="$HOME_USER/devops_soft/forStep1/PetClinic"
+    PROJECT_JAR="$PROJECT_DIR/target"
+
+    # Создание директорий и клонирование
+    mkdir -p "$HOME_USER/devops_soft"
+    chown -R $APP_USER:$APP_USER "$HOME_USER"
+
+    if [ ! -d "$PROJECT_DIR" ]; then
+        echo "Cloning project repo..."
+        sudo -u "$APP_USER" git clone https://gitlab.com/dan-it/groups/devops_soft.git "$HOME_USER/devops_soft"
     fi
 
-    sudo -u $APP_USER bash -c "
-      cd $PROJECT_DIR &&
-      chmod +x mvnw &&
-      ./mvnw clean package
+    echo "Building project..."
+    sudo -u "$APP_USER" bash -c "
+        cd $PROJECT_DIR &&
+        ./mvnw clean package
     "
 
     if [ $? -eq 0 ]; then
@@ -76,13 +67,20 @@ function install_java_sdk() {
 
         if [ -n "$JAR_FILE" ]; then
             cp "$JAR_FILE" "$HOME_USER"
+            chown "$APP_USER:$APP_USER" "$HOME_USER/$(basename "$JAR_FILE")"
 
-            chown "$APP_USER:$APP_USER" "$HOME_USER/$(basename "$JAR_FILE")"       
+            echo "✅ Starting application..."
+            sudo -u "$APP_USER" nohup java -jar "$HOME_USER/$(basename "$JAR_FILE")" > "$HOME_USER/app.log" 2>&1 &
+        else
+            echo "❌ .jar файл не найден"
+            exit 1
         fi
     else
-        echo "Bye bye..."
+        echo "❌ Maven сборка не удалась"
         exit 1
     fi
 }
 
+# Выполнение функций
+install_my_sql
 install_java_sdk
