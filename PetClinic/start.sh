@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source /etc/profile.d/db_env.sh
 
 APP_USER="app_user"
@@ -21,7 +23,6 @@ function install_my_sql() {
     service mysql restart
 
     echo "Creating database and user..."
-
     mysql -u root <<MYSQL_SCRIPT
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'192.168.56.%' IDENTIFIED BY '${DB_PASS}';
@@ -35,7 +36,7 @@ MYSQL_SCRIPT
 }
 
 function install_java_sdk() {
-    echo "Installing Java SDK..."
+    echo "Installing Java SDK and Git..."
     apt-get install -y openjdk-11-jdk git
 
     if ! id "$APP_USER" &>/dev/null; then
@@ -44,43 +45,41 @@ function install_java_sdk() {
     fi
 
     HOME_USER="/home/$APP_USER"
-    PROJECT_DIR="$HOME_USER/devops_soft/forStep1/PetClinic"
+    PROJECT_PARENT="$HOME_USER/devops_soft"
+    PROJECT_DIR="$PROJECT_PARENT/forStep1/PetClinic"
     PROJECT_JAR="$PROJECT_DIR/target"
 
-    # Создание директорий и клонирование
-    mkdir -p "$HOME_USER/devops_soft"
-    chown -R $APP_USER:$APP_USER "$HOME_USER"
+    echo "Cleaning existing project dir if exists..."
+    rm -rf "$PROJECT_PARENT"
+    mkdir -p "$PROJECT_PARENT"
+    chown -R "$APP_USER:$APP_USER" "$PROJECT_PARENT"
 
-    if [ ! -d "$PROJECT_DIR" ]; then
-        echo "Cloning project repo..."
-        sudo -u "$APP_USER" git clone https://gitlab.com/dan-it/groups/devops_soft.git "$HOME_USER/devops_soft"
-    fi
+    echo "Cloning project repo..."
+    sudo -u "$APP_USER" git clone https://@gitlab.com/dan-it/groups/devops_soft.git "$PROJECT_PARENT"
+
+    echo "Fixing permissions for project..."
+    chown -R "$APP_USER:$APP_USER" "$PROJECT_PARENT"
 
     echo "Building project..."
     sudo -u "$APP_USER" bash -c "
         cd $PROJECT_DIR &&
+        chmod +x mvnw &&
         ./mvnw clean package
     "
 
-    if [ $? -eq 0 ]; then
-        JAR_FILE=$(find "$PROJECT_JAR" -type f -name "*.jar" | head -n 1)
+    JAR_FILE=$(find "$PROJECT_JAR" -type f -name "*.jar" | head -n 1)
 
-        if [ -n "$JAR_FILE" ]; then
-            cp "$JAR_FILE" "$HOME_USER"
-            chown "$APP_USER:$APP_USER" "$HOME_USER/$(basename "$JAR_FILE")"
+    if [ -n "$JAR_FILE" ]; then
+        cp "$JAR_FILE" "$HOME_USER"
+        chown "$APP_USER:$APP_USER" "$HOME_USER/$(basename "$JAR_FILE")"
 
-            echo "✅ Starting application..."
-            sudo -u "$APP_USER" nohup java -jar "$HOME_USER/$(basename "$JAR_FILE")" > "$HOME_USER/app.log" 2>&1 &
-        else
-            echo "❌ .jar файл не найден"
-            exit 1
-        fi
+        echo "✅ Starting application..."
+        sudo -u "$APP_USER" nohup java -jar "$HOME_USER/$(basename "$JAR_FILE")" > "$HOME_USER/app.log" 2>&1 &
     else
-        echo "❌ Maven сборка не удалась"
+        echo "❌ .jar файл не найден"
         exit 1
     fi
 }
 
-# Выполнение функций
 install_my_sql
 install_java_sdk
