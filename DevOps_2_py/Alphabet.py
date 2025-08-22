@@ -26,18 +26,28 @@ class EngAlphabet(Alphabet):
     def example():
         return "The quick brown fox jumps over the lazy dog."
 
-def main():
+def run_simple_tests():
     eng_alphabet = EngAlphabet()
+    print("EngAlphabet object created.")
 
+    print("\nChecking the print() method:")
     eng_alphabet.print()
 
-    print(f"Number of letters: {eng_alphabet.letters_num()}")
+    print("\nChecking the number of letters:")
+    num_letters = eng_alphabet.letters_num()
+    print(f"Expected: 26, Got: {num_letters}")
 
-    print(f"'F' belongs to English alphabet: {eng_alphabet.is_en_letter('F')}")
+    print("\nChecking for an English letter 'F':")
+    is_f_letter = eng_alphabet.is_en_letter('F')
+    print(f"Expected: True, Got: {is_f_letter}")
 
-    print(f"'Щ' belongs to English alphabet: {eng_alphabet.is_en_letter('Щ')}")
+    print("\nChecking for a non-English letter 'Щ':")
+    is_sch_letter = eng_alphabet.is_en_letter('Щ')
+    print(f"Expected: False, Got: {is_sch_letter}")
 
-    print(f"Example text: {EngAlphabet.example()}")
-
+    print("\nChecking the example text:")
+    example_text = EngAlphabet.example()
+    print(f"Example text: {example_text}")
+    
 if __name__ == "__main__":
-    main()
+    run_simple_tests()
