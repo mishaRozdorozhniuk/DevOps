@@ -1,0 +1,12 @@
+1. GET all: 200 - [{'age': 25, 'first_name': 'Jane', 'id': 2, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 3, 'last_name': 'Williams'}]
+2.1 POST: 201 - {'age': 20, 'first_name': 'John', 'id': 4, 'last_name': 'Doe'}
+2.2 POST: 201 - {'age': 22, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}
+2.3 POST: 201 - {'age': 19, 'first_name': 'Bob', 'id': 6, 'last_name': 'Johnson'}
+3. GET all: 200 - [{'age': 25, 'first_name': 'Jane', 'id': 2, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 3, 'last_name': 'Williams'}, {'age': 20, 'first_name': 'John', 'id': 4, 'last_name': 'Doe'}, {'age': 22, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}, {'age': 19, 'first_name': 'Bob', 'id': 6, 'last_name': 'Johnson'}]
+4. PATCH: 200 - {'age': 25, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}
+5. GET: 200 - {'age': 25, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}
+6. PUT: 200 - {'age': 21, 'first_name': 'Robert', 'id': 6, 'last_name': 'Williams'}
+7. GET: 200 - {'age': 21, 'first_name': 'Robert', 'id': 6, 'last_name': 'Williams'}
+8. GET all: 200 - [{'age': 25, 'first_name': 'Jane', 'id': 2, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 3, 'last_name': 'Williams'}, {'age': 20, 'first_name': 'John', 'id': 4, 'last_name': 'Doe'}, {'age': 25, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 6, 'last_name': 'Williams'}]
+9. DELETE: 200 - {'message': 'Student 4 deleted'}
+10. GET all: 200 - [{'age': 25, 'first_name': 'Jane', 'id': 2, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 3, 'last_name': 'Williams'}, {'age': 25, 'first_name': 'Jane', 'id': 5, 'last_name': 'Smith'}, {'age': 21, 'first_name': 'Robert', 'id': 6, 'last_name': 'Williams'}]
